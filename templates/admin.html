@@ -1,0 +1,867 @@
+{% extends 'base.html' %}
+{% block title %}Admin Panel{% endblock title %}
+{% block nav_admin %}active{% endblock nav_admin %}
+{% block page_title %}Admin Control Panel{% endblock page_title %}
+
+{% block style %}
+<style>
+  .admin-tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 24px;
+    background: #ffffff;
+    padding: 8px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+  }
+  .admin-nav-item {
+    padding: 10px 18px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #64748b;
+    border-radius: 10px;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .admin-nav-item:hover {
+    color: var(--primary);
+    background: #f8fafc;
+  }
+  .admin-nav-item.active {
+    background: var(--primary-gradient);
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  }
+  .admin-nav-item .badge-pill-count {
+    background: rgba(255, 255, 255, 0.25);
+    color: inherit;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .admin-nav-item:not(.active) .badge-pill-count {
+    background: #e2e8f0;
+    color: #475569;
+  }
+  .status-badge-dropped {
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  .status-badge-active {
+    background: #dcfce7;
+    color: #166534;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+</style>
+{% endblock style %}
+
+{% block body %}
+<!-- ======= Modern Admin Tab Navigation ======= -->
+<div class="admin-tab-nav" id="adminTabs">
+  <a class="admin-nav-item {% if active_tab == 'student' %}active{% endif %}" 
+     id="btn-student" 
+     href="/admin?tab=student" 
+     onclick="switchAdminTab('tab-add-student', this); return false;">
+    <i class="fa fa-user-plus"></i> Enroll Student
+  </a>
+
+  <a class="admin-nav-item {% if active_tab == 'courses' %}active{% endif %}" 
+     id="btn-courses" 
+     href="/admin?tab=courses" 
+     onclick="switchAdminTab('tab-courses', this); return false;">
+    <i class="fa fa-book"></i> Courses & Subjects
+    <span class="badge-pill-count">{{ courses|length }}</span>
+  </a>
+
+  <a class="admin-nav-item {% if active_tab == 'dept' %}active{% endif %}" 
+     id="btn-dept" 
+     href="/admin?tab=dept" 
+     onclick="switchAdminTab('tab-departments', this); return false;">
+    <i class="fa fa-building"></i> Departments
+    <span class="badge-pill-count">{{ departments|length }}</span>
+  </a>
+
+  <a class="admin-nav-item {% if active_tab == 'manage' %}active{% endif %}" 
+     id="btn-manage" 
+     href="/admin?tab=manage" 
+     onclick="switchAdminTab('tab-manage-students', this); return false;">
+    <i class="fa fa-pencil-square-o"></i> Student Directory
+    <span class="badge-pill-count">{{ students|length }}</span>
+  </a>
+
+  <a class="admin-nav-item {% if active_tab == 'faculty' %}active{% endif %}" 
+     id="btn-faculty" 
+     href="/admin?tab=faculty" 
+     onclick="switchAdminTab('tab-faculty-mgmt', this); return false;">
+    <i class="fa fa-users"></i> Faculty & Access
+    <span class="badge-pill-count">{{ users|length }}</span>
+  </a>
+</div>
+
+<!-- ================= TAB 1: ADD / ENROLL STUDENT ================= -->
+<div class="admin-tab-pane" id="tab-add-student" style="display: {% if active_tab == 'student' %}block{% else %}none{% endif %};">
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+          <i class="fa fa-user-plus text-primary mr-2"></i> Enroll New Student
+        </h5>
+        <span class="text-muted small">Creates student profile in MySQL database and initializes zero-state attendance record</span>
+      </div>
+      <span class="badge badge-light border px-3 py-1 font-weight-bold">Single Entry Form</span>
+    </div>
+    <div class="card-body p-4">
+      <form action="/addstudent" method="post">
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label class="font-weight-bold text-dark">Roll Number / Student ID <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="rollno" placeholder="e.g. CS101 or U2509" required>
+            <small class="form-text text-muted">Must be unique across all departments.</small>
+          </div>
+          <div class="form-group col-md-5">
+            <label class="font-weight-bold text-dark">Full Student Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="sname" placeholder="e.g. Aarav Sharma" required>
+          </div>
+          <div class="form-group col-md-3">
+            <label class="font-weight-bold text-dark">Semester <span class="text-danger">*</span></label>
+            <select name="sem" class="form-control font-weight-bold" required>
+              {% for s in range(1, 9) %}
+                <option value="{{ s }}" {% if s == 3 %}selected{% endif %}>Semester {{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label class="font-weight-bold text-dark">Department / Branch <span class="text-danger">*</span></label>
+            <select class="form-control font-weight-bold" name="branch" required>
+              <option value="" disabled selected>-- Select Department --</option>
+              {% for d in departments %}
+                <option value="{{ d.branch }}">{{ d.branch }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-4">
+            <label class="font-weight-bold text-dark">Gender</label>
+            <select class="form-control" name="gender">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group col-md-4">
+            <label class="font-weight-bold text-dark">Contact Phone</label>
+            <input type="text" class="form-control" name="num" placeholder="e.g. 9876543210">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label class="font-weight-bold text-dark">Email Address</label>
+            <input type="email" class="form-control" name="email" placeholder="student@college.edu">
+          </div>
+          <div class="form-group col-md-6">
+            <label class="font-weight-bold text-dark">Hostel / Residential Address</label>
+            <input type="text" class="form-control" name="address" placeholder="Campus Hostel or Home Address">
+          </div>
+        </div>
+
+        <div class="mt-3 pt-3 border-top d-flex justify-content-end">
+          <button type="submit" class="btn btn-gradient-primary btn-lg font-weight-bold px-4">
+            <i class="fa fa-check mr-2"></i> Enroll Student
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TAB 2: MANAGE COURSES / SUBJECTS ================= -->
+<div class="admin-tab-pane" id="tab-courses" style="display: {% if active_tab == 'courses' %}block{% else %}none{% endif %};">
+  <div class="row">
+    <!-- Add Course Form -->
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom">
+          <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+            <i class="fa fa-plus-circle text-primary mr-2"></i> Add Course / Subject
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <form action="/addcourse" method="post">
+            <div class="form-group">
+              <label class="font-weight-bold text-dark">Course Code <span class="text-danger">*</span></label>
+              <input type="text" class="form-control text-uppercase font-weight-bold" name="course_code" placeholder="e.g. COA, DBMS" required>
+            </div>
+            <div class="form-group">
+              <label class="font-weight-bold text-dark">Course Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="course_name" placeholder="e.g. Computer Organization & Architecture" required>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label class="font-weight-bold text-dark">Branch <span class="text-danger">*</span></label>
+                <select name="branch" class="form-control font-weight-bold" required>
+                  {% for d in departments %}
+                    <option value="{{ d.branch }}">{{ d.branch }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group col-md-6">
+                <label class="font-weight-bold text-dark">Semester</label>
+                <select name="sem" class="form-control font-weight-bold">
+                  {% for s in range(1, 9) %}
+                    <option value="{{ s }}" {% if s == 3 %}selected{% endif %}>Sem {{ s }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-gradient-primary btn-block font-weight-bold py-2 mt-2">
+              <i class="fa fa-plus mr-1"></i> Register Subject
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Registered Courses Table -->
+    <div class="col-lg-8 mb-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+          <div class="mb-2 mb-md-0">
+            <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+              <i class="fa fa-book text-success mr-2"></i> Registered Courses
+            </h5>
+            <span class="text-muted small">{{ courses|length }} subject(s) configured</span>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <button type="button" class="btn btn-sm btn-dark font-weight-bold px-2 py-1 mr-1" onclick="filterCoursesByBranch('ALL')">All</button>
+            {% for d in departments %}
+            <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold px-2 py-1 mr-1" onclick="filterCoursesByBranch('{{ d.branch }}')">{{ d.branch }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table-modern" id="adminCoursesTable">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Course Title</th>
+                  <th>Branch</th>
+                  <th>Sem</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in courses %}
+                <tr class="course-row" data-branch="{{ c.branch }}" data-code="{{ c.course_code|lower }}" data-name="{{ c.course_name|lower }}">
+                  <td>
+                    <span class="badge badge-primary px-3 py-1 font-weight-bold" style="font-size: 13px; border-radius: 6px;">
+                      {{ c.course_code }}
+                    </span>
+                  </td>
+                  <td class="font-weight-bold text-dark">{{ c.course_name }}</td>
+                  <td>
+                    <span class="branch-badge">{{ c.branch }}</span>
+                  </td>
+                  <td>Sem {{ c.sem }}</td>
+                  <td class="text-right">
+                    <button type="button" class="btn btn-sm btn-primary font-weight-bold mr-1" 
+                            onclick="openEditCourseModal({{ c.id }}, '{{ c.course_code }}', '{{ c.course_name }}', '{{ c.branch }}', {{ c.sem }})" title="Edit Course">
+                      <i class="fa fa-pencil"></i>
+                    </button>
+                    <a href="/deletecourse/{{ c.id }}" onclick="return confirm('Are you sure you want to delete course {{ c.course_code }}?');" class="btn btn-sm btn-outline-danger font-weight-bold" title="Delete Course">
+                      <i class="fa fa-trash"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="5" class="text-center py-4 text-muted">No courses registered yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TAB 3: BRANCHES / DEPARTMENTS ================= -->
+<div class="admin-tab-pane" id="tab-departments" style="display: {% if active_tab == 'dept' %}block{% else %}none{% endif %};">
+  <div class="row">
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom">
+          <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+            <i class="fa fa-plus-circle text-primary mr-2"></i> Add Department
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <form action="/department" method="post">
+            <div class="form-group">
+              <label class="font-weight-bold text-dark">Branch / Department Code <span class="text-danger">*</span></label>
+              <input type="text" class="form-control text-uppercase font-weight-bold" name="dept" placeholder="e.g. CS, AI, MECH, CIVIL" required>
+            </div>
+            <button type="submit" class="btn btn-gradient-primary btn-block font-weight-bold py-2 mt-2">
+              <i class="fa fa-plus mr-1"></i> Create Department
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8 mb-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom">
+          <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+            <i class="fa fa-building text-info mr-2"></i> Configured Departments
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table-modern">
+              <thead>
+                <tr>
+                  <th>Branch Name</th>
+                  <th>Enrolled Students</th>
+                  <th>Courses</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in departments %}
+                {% set dept_students = students|selectattr('branch', 'equalto', d.branch)|selectattr('status', 'equalto', 'Active')|list %}
+                {% set dept_courses = courses|selectattr('branch', 'equalto', d.branch)|list %}
+                <tr>
+                  <td>
+                    <span class="branch-badge font-weight-bold" style="font-size: 13px;">{{ d.branch }}</span>
+                  </td>
+                  <td><b>{{ dept_students|length }}</b> active students</td>
+                  <td><b>{{ dept_courses|length }}</b> courses</td>
+                  <td class="text-right">
+                    <button type="button" class="btn btn-sm btn-primary font-weight-bold mr-1"
+                            onclick="openEditDeptModal({{ d.cid }}, '{{ d.branch }}')" title="Edit Department">
+                      <i class="fa fa-pencil"></i>
+                    </button>
+                    <a href="/deletedepartment/{{ d.cid }}" onclick="return confirm('Are you sure you want to delete branch {{ d.branch }}?');" class="btn btn-sm btn-outline-danger font-weight-bold">
+                      <i class="fa fa-trash"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="4" class="text-center py-4 text-muted">No departments configured yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TAB 4: MANAGE & EDIT STUDENTS ================= -->
+<div class="admin-tab-pane" id="tab-manage-students" style="display: {% if active_tab == 'manage' %}block{% else %}none{% endif %};">
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center py-3">
+      <div class="mb-2 mb-md-0">
+        <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+          <i class="fa fa-pencil-square-o text-primary mr-2"></i> Student Directory (Edit & Dropout Management)
+        </h5>
+        <span class="text-muted small">Update student bio or manage dropouts with two-step safeguards</span>
+      </div>
+
+      <div class="search-box-pill" style="min-width: 280px;">
+        <i class="fa fa-search"></i>
+        <input type="text" id="adminStudentFilter" class="form-control form-control-sm" placeholder="Search student name or roll..." onkeyup="filterAdminStudents()">
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table-modern" id="adminStudentTable">
+          <thead>
+            <tr>
+              <th>Roll Number</th>
+              <th>Student Name</th>
+              <th>Branch</th>
+              <th>Sem</th>
+              <th>Status</th>
+              <th>Contact</th>
+              <th class="text-center" style="width: 210px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr class="admin-student-row" data-name="{{ s.sname|lower }}" data-roll="{{ s.rollno|lower }}">
+              <td>
+                <span class="badge badge-light border font-weight-bold text-dark px-2 py-1" style="font-size: 13px;">
+                  {{ s.rollno }}
+                </span>
+              </td>
+              <td>
+                <span class="avatar-initials">{{ s.sname[0]|upper }}</span>
+                <span class="font-weight-bold text-dark">{{ s.sname }}</span>
+              </td>
+              <td>
+                <span class="branch-badge">{{ s.branch }}</span>
+              </td>
+              <td>Sem {{ s.sem }}</td>
+              <td>
+                {% if s.status == 'Active' %}
+                  <span class="status-badge-active"><i class="fa fa-check-circle"></i> Active</span>
+                {% else %}
+                  <span class="status-badge-dropped"><i class="fa fa-user-times"></i> Dropped Out</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ s.email }}<br>{{ s.number }}</td>
+              <td class="text-center">
+                <a href="/edit/{{ s.id }}" class="btn btn-sm btn-primary font-weight-bold mr-1" style="border-radius: 8px;" title="Edit Student">
+                  <i class="fa fa-pencil"></i> Edit
+                </a>
+
+                {% if s.status == 'Active' %}
+                <!-- Step 1 Trigger for Two-Step Dropout / Deletion Modal -->
+                <button type="button" class="btn btn-sm btn-outline-danger font-weight-bold" style="border-radius: 8px;" 
+                        onclick="triggerTwoStepDelete({{ s.id }}, '{{ s.sname }}', '{{ s.rollno }}')" title="Drop Out / Delete Student">
+                  <i class="fa fa-user-times"></i> Drop Out
+                </button>
+                {% else %}
+                <a href="/restorestudent/{{ s.id }}" class="btn btn-sm btn-success font-weight-bold mr-1" style="border-radius: 8px;" title="Restore to Active">
+                  <i class="fa fa-refresh"></i> Restore
+                </a>
+                <button type="button" class="btn btn-sm btn-danger font-weight-bold" style="border-radius: 8px;" 
+                        onclick="triggerTwoStepDelete({{ s.id }}, '{{ s.sname }}', '{{ s.rollno }}', true)" title="Purge Record">
+                  <i class="fa fa-trash"></i>
+                </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">No students found. Use Tab 1 above to enroll students.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TAB 5: FACULTY & ACCESS CONTROL ================= -->
+<div class="admin-tab-pane" id="tab-faculty-mgmt" style="display: {% if active_tab == 'faculty' %}block{% else %}none{% endif %};">
+  <div class="row">
+    <!-- Add Faculty Form -->
+    <div class="col-lg-4 mb-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom">
+          <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+            <i class="fa fa-user-plus text-primary mr-2"></i> Create Faculty / User
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <form action="/adduser" method="post">
+            <div class="form-group">
+              <label class="font-weight-bold text-dark">Username <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="username" placeholder="e.g. dr_jamie or prof_sharma" required>
+            </div>
+            <div class="form-group">
+              <label class="font-weight-bold text-dark">Email Address <span class="text-danger">*</span></label>
+              <input type="email" class="form-control" name="email" placeholder="faculty@college.edu" required>
+            </div>
+            <div class="form-group">
+              <label class="font-weight-bold text-dark">Password <span class="text-danger">*</span></label>
+              <input type="password" class="form-control" name="password" placeholder="Password" required>
+            </div>
+            <div class="form-group">
+              <label class="font-weight-bold text-dark">Role <span class="text-danger">*</span></label>
+              <select name="role" id="userRoleSelect" class="form-control font-weight-bold" onchange="toggleFacultyFields()">
+                <option value="faculty" selected>Faculty (Class Restricted)</option>
+                <option value="admin">Administrator (Full Access)</option>
+              </select>
+            </div>
+
+            <!-- Dynamic Fields for Faculty Assignment -->
+            <div id="facultyAssignmentFields">
+              <div class="form-group">
+                <label class="font-weight-bold text-dark">Assigned Department / Branch <span class="text-danger">*</span></label>
+                <select name="branch" class="form-control font-weight-bold">
+                  <option value="" disabled selected>-- Select Faculty Branch --</option>
+                  {% for d in departments %}
+                    <option value="{{ d.branch }}">{{ d.branch }}</option>
+                  {% endfor %}
+                </select>
+                <small class="text-muted">Faculty will only see and mark roll for this department.</small>
+              </div>
+              <div class="form-row">
+                <div class="form-group col-md-6">
+                  <label class="font-weight-bold text-dark">Semester</label>
+                  <select name="sem" class="form-control font-weight-bold">
+                    <option value="">Any</option>
+                    {% for s in range(1, 9) %}
+                      <option value="{{ s }}" {% if s == 3 %}selected{% endif %}>Sem {{ s }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="form-group col-md-6">
+                  <label class="font-weight-bold text-dark">Assigned Course Code</label>
+                  <input type="text" class="form-control text-uppercase" name="assigned_course" placeholder="e.g. COA">
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-gradient-primary btn-block font-weight-bold py-2 mt-2">
+              <i class="fa fa-plus-circle mr-1"></i> Add Account
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Accounts Table -->
+    <div class="col-lg-8 mb-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom">
+          <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+            <i class="fa fa-shield text-primary mr-2"></i> System User Accounts
+          </h5>
+          <span class="text-muted small">Manage faculty credentials and administrative permissions</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table-modern">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Assigned Scope</th>
+                  <th class="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in users %}
+                <tr>
+                  <td>
+                    <span class="font-weight-bold text-dark">{{ u.username }}</span>
+                    {% if u.id == current_user.id %}
+                      <span class="badge badge-light border ml-1 text-primary">You</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted">{{ u.email }}</td>
+                  <td>
+                    {% if u.role == 'admin' %}
+                      <span class="badge badge-primary px-2 py-1 font-weight-bold">Administrator</span>
+                    {% else %}
+                      <span class="badge badge-success px-2 py-1 font-weight-bold">Faculty</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if u.role == 'faculty' %}
+                      <span class="branch-badge">{{ u.branch or 'All' }}</span>
+                      {% if u.sem %}<span class="badge badge-light border">Sem {{ u.sem }}</span>{% endif %}
+                      {% if u.assigned_course %}<span class="badge badge-info">{{ u.assigned_course }}</span>{% endif %}
+                    {% else %}
+                      <span class="text-muted small">Global System Access</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-right">
+                    {% if u.id != current_user.id %}
+                    <a href="/deleteuser/{{ u.id }}" onclick="return confirm('Are you sure you want to delete user account {{ u.username }}?');" class="btn btn-sm btn-outline-danger font-weight-bold">
+                      <i class="fa fa-trash"></i>
+                    </a>
+                    {% else %}
+                    <span class="text-muted small">Protected</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: EDIT COURSE ================= -->
+<div class="modal fade" id="modalEditCourse" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title font-weight-bold text-dark"><i class="fa fa-pencil text-primary mr-2"></i> Edit Course</h5>
+        <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" onclick="$('#modalEditCourse').modal('hide');" style="opacity: 0.8; font-size: 24px; border: none; background: transparent; cursor: pointer;">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form id="editCourseForm" method="post">
+        <div class="modal-body p-4">
+          <div class="form-group">
+            <label class="font-weight-bold text-dark">Course Code <span class="text-danger">*</span></label>
+            <input type="text" class="form-control text-uppercase font-weight-bold" name="course_code" id="editCourseCode" required>
+          </div>
+          <div class="form-group">
+            <label class="font-weight-bold text-dark">Course Title <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="course_name" id="editCourseName" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label class="font-weight-bold text-dark">Branch <span class="text-danger">*</span></label>
+              <select name="branch" id="editCourseBranch" class="form-control font-weight-bold" required>
+                {% for d in departments %}
+                  <option value="{{ d.branch }}">{{ d.branch }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group col-md-6">
+              <label class="font-weight-bold text-dark">Semester</label>
+              <select name="sem" id="editCourseSem" class="form-control font-weight-bold">
+                {% for s in range(1, 9) %}
+                  <option value="{{ s }}">Sem {{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal" data-bs-dismiss="modal" onclick="$('#modalEditCourse').modal('hide');">Cancel</button>
+          <button type="submit" class="btn btn-gradient-primary font-weight-bold">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: EDIT DEPARTMENT ================= -->
+<div class="modal fade" id="modalEditDept" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title font-weight-bold text-dark"><i class="fa fa-pencil text-primary mr-2"></i> Rename Department</h5>
+        <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" onclick="$('#modalEditDept').modal('hide');" style="opacity: 0.8; font-size: 24px; border: none; background: transparent; cursor: pointer;">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form id="editDeptForm" method="post">
+        <div class="modal-body p-4">
+          <div class="form-group">
+            <label class="font-weight-bold text-dark">Department / Branch Code <span class="text-danger">*</span></label>
+            <input type="text" class="form-control text-uppercase font-weight-bold" name="branch" id="editDeptBranch" required>
+            <small class="form-text text-muted">Updating this will automatically update connected courses and students.</small>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal" data-bs-dismiss="modal" onclick="$('#modalEditDept').modal('hide');">Cancel</button>
+          <button type="submit" class="btn btn-gradient-primary font-weight-bold">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: TWO-STEP DROPOUT & DELETION SAFEGUARD ================= -->
+<div class="modal fade" id="twoStepDeleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title font-weight-bold"><i class="fa fa-exclamation-triangle mr-2"></i> Two-Step Confirmation Safeguard</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" onclick="$('#twoStepDeleteModal').modal('hide');" style="opacity: 0.95; font-size: 26px; border: none; background: transparent; cursor: pointer;">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form id="twoStepDeleteForm" method="post">
+        <div class="modal-body p-4">
+          <p class="text-dark">You are about to change the academic enrollment status for:</p>
+          <div class="alert alert-light border font-weight-bold mb-3">
+            <span id="targetStudentName" class="text-dark h5 mb-0"></span><br>
+            Roll Number: <span id="targetStudentRoll" class="text-danger"></span>
+          </div>
+
+          <!-- Step 1: Action Type Selection -->
+          <label class="font-weight-bold text-dark mb-2">Step 1: Select Deletion Type</label>
+          <div class="border rounded p-3 mb-3 bg-light">
+            <div class="custom-control custom-radio mb-2">
+              <input type="radio" id="actionDropout" name="action" value="dropout" class="custom-control-input" checked>
+              <label class="custom-control-label font-weight-bold text-dark" for="actionDropout" style="cursor: pointer;">
+                Mark as Dropped Out (Recommended)
+              </label>
+              <small class="d-block text-muted">Excludes student from daily roll call, but preserves all past attendance records and history.</small>
+            </div>
+            <div class="custom-control custom-radio">
+              <input type="radio" id="actionPurge" name="action" value="purge" class="custom-control-input">
+              <label class="custom-control-label font-weight-bold text-danger" for="actionPurge" style="cursor: pointer;">
+                Permanent Purge (Irrevocable)
+              </label>
+              <small class="d-block text-muted">Permanently erases student profile and all past attendance logs from MySQL database.</small>
+            </div>
+          </div>
+
+          <!-- Step 2: Verification Input Check -->
+          <label class="font-weight-bold text-dark mb-1">Step 2: Type student roll number <code id="confirmPromptRoll"></code> to confirm:</label>
+          <input type="text" id="confirmRollInput" name="confirm_roll" class="form-control font-weight-bold" placeholder="Type exact roll number here..." onkeyup="checkTwoStepConfirmation()" required autocomplete="off">
+          <small id="confirmMatchNotice" class="form-text text-muted mt-1">Button remains disabled until roll numbers match exactly.</small>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal" data-bs-dismiss="modal" onclick="$('#twoStepDeleteModal').modal('hide');">Cancel</button>
+          <button type="submit" id="btnConfirmDeleteAction" disabled class="btn btn-danger font-weight-bold">
+            <i class="fa fa-check mr-1"></i> Confirm & Proceed
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock body %}
+
+{% block script %}
+<script>
+  function switchAdminTab(tabId, clickedBtn) {
+    var panes = document.querySelectorAll('.admin-tab-pane');
+    panes.forEach(function(pane) {
+      pane.style.display = 'none';
+    });
+
+    var btns = document.querySelectorAll('.admin-nav-item');
+    btns.forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+
+    var target = document.getElementById(tabId);
+    if (target) {
+      target.style.display = 'block';
+    }
+
+    if (clickedBtn) {
+      clickedBtn.classList.add('active');
+    }
+
+    var tabParam = 'student';
+    if (tabId === 'tab-courses') tabParam = 'courses';
+    if (tabId === 'tab-departments') tabParam = 'dept';
+    if (tabId === 'tab-manage-students') tabParam = 'manage';
+    if (tabId === 'tab-faculty-mgmt') tabParam = 'faculty';
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', '/admin?tab=' + tabParam);
+    }
+  }
+
+  function toggleFacultyFields() {
+    var role = document.getElementById('userRoleSelect').value;
+    var container = document.getElementById('facultyAssignmentFields');
+    if (role === 'admin') {
+      container.style.display = 'none';
+    } else {
+      container.style.display = 'block';
+    }
+  }
+
+  function openEditCourseModal(id, code, name, branch, sem) {
+    document.getElementById('editCourseForm').action = '/editcourse/' + id;
+    document.getElementById('editCourseCode').value = code;
+    document.getElementById('editCourseName').value = name;
+    document.getElementById('editCourseBranch').value = branch;
+    document.getElementById('editCourseSem').value = sem;
+    $('#modalEditCourse').modal('show');
+  }
+
+  function openEditDeptModal(cid, branch) {
+    document.getElementById('editDeptForm').action = '/editdepartment/' + cid;
+    document.getElementById('editDeptBranch').value = branch;
+    $('#modalEditDept').modal('show');
+  }
+
+  var expectedRoll = '';
+  function triggerTwoStepDelete(studentId, name, roll, isPurge) {
+    expectedRoll = roll.trim();
+    document.getElementById('twoStepDeleteForm').action = '/delete/' + studentId;
+    document.getElementById('targetStudentName').textContent = name;
+    document.getElementById('targetStudentRoll').textContent = roll;
+    document.getElementById('confirmPromptRoll').textContent = roll;
+    document.getElementById('confirmRollInput').value = '';
+    document.getElementById('btnConfirmDeleteAction').disabled = true;
+    document.getElementById('confirmMatchNotice').innerHTML = '<span class="text-danger">Confirmation required: Please type exact roll number.</span>';
+
+    if (isPurge) {
+      document.getElementById('actionPurge').checked = true;
+    } else {
+      document.getElementById('actionDropout').checked = true;
+    }
+
+    $('#twoStepDeleteModal').modal('show');
+  }
+
+  function checkTwoStepConfirmation() {
+    var inputVal = document.getElementById('confirmRollInput').value.trim();
+    var btn = document.getElementById('btnConfirmDeleteAction');
+    var notice = document.getElementById('confirmMatchNotice');
+    if (inputVal === expectedRoll && expectedRoll !== '') {
+      btn.disabled = false;
+      notice.innerHTML = '<span class="text-success font-weight-bold"><i class="fa fa-check"></i> Roll numbers match! You may now confirm.</span>';
+    } else {
+      btn.disabled = true;
+      notice.innerHTML = '<span class="text-danger">Roll number does not match.</span>';
+    }
+  }
+
+  function filterAdminStudents() {
+    var query = document.getElementById('adminStudentFilter').value.toLowerCase().trim();
+    var rows = document.querySelectorAll('.admin-student-row');
+    rows.forEach(function(row) {
+      var name = row.getAttribute('data-name') || '';
+      var roll = row.getAttribute('data-roll') || '';
+      if (!query || name.includes(query) || roll.includes(query)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  var activeCourseBranch = 'ALL';
+  function filterCoursesByBranch(branch) {
+    activeCourseBranch = branch;
+    filterCoursesTable();
+  }
+
+  function filterCoursesTable() {
+    var query = (document.getElementById('courseQuickFilter') ? document.getElementById('courseQuickFilter').value : '').toLowerCase().trim();
+    var rows = document.querySelectorAll('.course-row');
+    rows.forEach(function(row) {
+      var b = row.getAttribute('data-branch') || '';
+      var code = row.getAttribute('data-code') || '';
+      var name = row.getAttribute('data-name') || '';
+
+      var matchesBranch = (activeCourseBranch === 'ALL' || b === activeCourseBranch);
+      var matchesQuery = (!query || code.includes(query) || name.includes(query));
+
+      if (matchesBranch && matchesQuery) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+</script>
+{% endblock script %}

@@ -1,0 +1,50 @@
+{% extends 'auth.html' %}
+{% block title %}Sign Up{% endblock title %}
+
+{% block content %}
+<div class="mb-4 text-center">
+  <h4 class="font-weight-bold text-white mb-1">Create Account</h4>
+  <p class="text-muted small">Register a new administrator or faculty account</p>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ 'danger' if category == 'danger' or category == 'warning' else 'primary' }} alert-dismissible fade show border-0 py-2" role="alert" style="border-radius: 10px; font-size: 13px;">
+        <i class="fa fa-info-circle mr-1"></i> {{ message }}
+        <button type="button" class="close py-2" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<form action="/signup" method="post">
+  <div class="form-group text-left">
+    <label for="username"><i class="fa fa-user mr-1 text-muted"></i> Username</label>
+    <input type="text" class="form-control" name="username" id="username" placeholder="e.g. faculty_member" required autofocus>
+  </div>
+
+  <div class="form-group text-left">
+    <label for="email"><i class="fa fa-envelope mr-1 text-muted"></i> Email Address</label>
+    <input type="email" class="form-control" id="email" name="email" placeholder="faculty@college.edu" required>
+  </div>
+
+  <div class="form-group text-left">
+    <label for="password"><i class="fa fa-lock mr-1 text-muted"></i> Password</label>
+    <input type="password" class="form-control" name="password" id="password" placeholder="Create strong password" required>
+  </div>
+
+  <button type="submit" class="btn btn-gradient-auth btn-block mt-4">
+    <i class="fa fa-user-plus mr-1"></i> Register Account
+  </button>
+
+  <div class="mt-4 pt-3 text-center border-top" style="border-color: rgba(255, 255, 255, 0.1) !important;">
+    <span class="text-muted small">Already registered?</span>
+    <a href="/login" class="text-primary font-weight-bold ml-1 small" style="color: #818cf8 !important;">
+      Sign In Here &rarr;
+    </a>
+  </div>
+</form>
+{% endblock content %}

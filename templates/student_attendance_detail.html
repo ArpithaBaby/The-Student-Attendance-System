@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+{% block title %}Academic Attendance Transcript - {{ student.sname }} ({{ student.rollno }}){% endblock title %}
+{% block nav_view %}active{% endblock nav_view %}
+{% block page_title %}Student Academic Attendance Report{% endblock page_title %}
+
+{% block style %}
+<style>
+  /* Official Academic Report Card Styling */
+  .report-header-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    padding: 28px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .report-metric-badge {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 18px;
+    text-align: center;
+    min-width: 120px;
+  }
+  .report-metric-badge h4 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .report-metric-badge span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .subject-report-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 14px 16px;
+    border-bottom: 2px solid var(--border-color);
+  }
+  .subject-report-table td {
+    padding: 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .margin-pill-safe {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-block;
+  }
+  .margin-pill-risk {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-block;
+  }
+
+  @media print {
+    .app-sidebar, .app-topbar, .btn-no-print, .mb-3 a {
+      display: none !important;
+    }
+    .app-main {
+      margin-left: 0 !important;
+      padding: 0 !important;
+    }
+    .report-header-card, .card {
+      box-shadow: none !important;
+      border: 1px solid #ccc !important;
+    }
+  }
+</style>
+{% endblock style %}
+
+{% block body %}
+<!-- ======= Action Bar & Navigation ======= -->
+<div class="d-flex justify-content-between align-items-center mb-3 btn-no-print">
+  <a href="/viewattendance" class="btn btn-outline-secondary btn-sm font-weight-bold" style="border-radius: 8px;">
+    <i class="fa fa-arrow-left mr-1"></i> Back to Attendance Register
+  </a>
+  <div class="d-flex gap-2">
+    <button onclick="window.print()" class="btn btn-outline-primary btn-sm font-weight-bold" style="border-radius: 8px;">
+      <i class="fa fa-print mr-1"></i> Print Official Report
+    </button>
+  </div>
+</div>
+
+<!-- ======= Official Academic Statement / Student Profile ======= -->
+<div class="report-header-card">
+  <div class="row align-items-center">
+    <!-- Left Column: Student Bio -->
+    <div class="col-lg-6 mb-3 mb-lg-0">
+      <div class="d-flex align-items-center mb-3">
+        <span class="avatar-initials" style="width: 58px; height: 58px; font-size: 22px;">
+          {{ student.sname[0]|upper }}
+        </span>
+        <div class="ml-2">
+          <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+            <h3 class="font-weight-bold text-dark mb-0 mr-2">{{ student.sname }}</h3>
+            <span class="badge badge-light border font-weight-bold text-dark px-2 py-1" style="font-size: 13px;">
+              Roll No: {{ student.rollno }}
+            </span>
+          </div>
+          <div class="d-flex align-items-center flex-wrap gap-2">
+            <span class="branch-badge {% if student.branch == 'CU' %}branch-badge-cu{% elif student.branch == 'CS' %}branch-badge-cs{% elif student.branch == 'AI' %}branch-badge-ai{% elif student.branch == 'MECH' %}branch-badge-mech{% endif %} mr-1">
+              {{ student.branch }}
+            </span>
+            <span class="badge badge-secondary px-2 py-1 font-weight-bold mr-2">Semester {{ student.sem }}</span>
+            <span class="badge badge-success px-2 py-1 font-weight-bold">{{ student.status }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row text-muted small pt-2 border-top">
+        <div class="col-sm-6 mb-1">
+          <i class="fa fa-envelope text-primary mr-1"></i> {{ student.email or 'N/A' }}
+        </div>
+        <div class="col-sm-6 mb-1">
+          <i class="fa fa-phone text-success mr-1"></i> {{ student.number or 'N/A' }}
+        </div>
+        <div class="col-12 mt-1">
+          <i class="fa fa-map-marker text-danger mr-1"></i> Address: {{ student.address or 'Campus Hostel' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Institutional Score Metrics -->
+    <div class="col-lg-6">
+      <div class="d-flex justify-content-lg-end justify-content-start flex-wrap gap-3">
+        <div class="report-metric-badge">
+          <h4 class="text-primary">{{ stats.subject_breakdown|length }}</h4>
+          <span>Courses</span>
+        </div>
+        <div class="report-metric-badge">
+          <h4 class="text-dark">{{ stats.total_classes }}</h4>
+          <span>Sessions Held</span>
+        </div>
+        <div class="report-metric-badge">
+          <h4 class="text-success">{{ stats.present_count }}</h4>
+          <span>Attended</span>
+        </div>
+        <div class="report-metric-badge" style="background: {% if stats.total_classes == 0 %}#f8fafc{% elif stats.percentage >= 75 %}#ecfdf5{% elif stats.percentage >= 60 %}#fffbeb{% else %}#fef2f2{% endif %}; border-color: {% if stats.total_classes == 0 %}#e2e8f0{% elif stats.percentage >= 75 %}#a7f3d0{% elif stats.percentage >= 60 %}#fde68a{% else %}#fecaca{% endif %}; min-width: 140px;">
+          <h4 class="{% if stats.total_classes == 0 %}text-muted{% elif stats.percentage >= 75 %}text-success{% elif stats.percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">
+            {% if stats.total_classes == 0 %}--{% else %}{{ stats.percentage }}%{% endif %}
+          </h4>
+          <span>
+            {% if stats.total_classes == 0 %}
+              Pending Term
+            {% elif stats.percentage >= 75 %}
+              Exam Eligible
+            {% else %}
+              Shortage Risk
+            {% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= Official Subject Attendance Matrix Table ======= -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+    <div>
+      <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+        <i class="fa fa-graduation-cap text-primary mr-2"></i> Official Subject-Wise Attendance Breakdown
+      </h5>
+      <span class="text-muted small">Academic term report card with requirement analysis and eligibility threshold (&ge; 75%)</span>
+    </div>
+    <span class="badge badge-light border px-3 py-1 font-weight-bold">{{ stats.subject_breakdown|length }} Subjects Registered</span>
+  </div>
+
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table subject-report-table mb-0">
+        <thead>
+          <tr>
+            <th style="width: 120px;">Course Code</th>
+            <th>Course Title</th>
+            <th class="text-center" style="width: 100px;">Classes Held</th>
+            <th class="text-center text-success" style="width: 90px;">Attended</th>
+            <th class="text-center text-danger" style="width: 90px;">Absent</th>
+            <th style="min-width: 190px;">Attendance %</th>
+            <th style="min-width: 180px;">Compliance Analysis</th>
+            <th class="text-center" style="width: 130px;">Standing</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sb in stats.subject_breakdown %}
+          <tr>
+            <td>
+              <span class="badge badge-primary px-3 py-1 font-weight-bold" style="font-size: 13px; border-radius: 6px;">
+                {{ sb.code }}
+              </span>
+            </td>
+            <td>
+              <div class="font-weight-bold text-dark">{{ sb.name }}</div>
+              <small class="text-muted">Department: {{ student.branch }} · Semester {{ student.sem }}</small>
+            </td>
+            <td class="text-center font-weight-bold text-dark">{{ sb.total }}</td>
+            <td class="text-center font-weight-bold text-success">{{ sb.present }}</td>
+            <td class="text-center font-weight-bold text-danger">{{ sb.absent }}</td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="progress flex-grow-1 mr-2" style="height: 10px; border-radius: 5px; background: #e2e8f0;">
+                  <div class="progress-bar" 
+                       role="progressbar" 
+                       style="width: {{ sb.percentage }}%; background: {% if sb.total == 0 %}#94a3b8{% elif sb.percentage >= 75 %}var(--success-gradient){% elif sb.percentage >= 60 %}var(--warning-gradient){% else %}var(--danger-gradient){% endif %};" 
+                       aria-valuenow="{{ sb.percentage }}" 
+                       aria-valuemin="0" 
+                       aria-valuemax="100"></div>
+                </div>
+                <span class="font-weight-bold {% if sb.total == 0 %}text-muted{% elif sb.percentage >= 75 %}text-success{% elif sb.percentage >= 60 %}text-warning{% else %}text-danger{% endif %}" style="font-size: 13px; min-width: 46px;">
+                  {% if sb.total == 0 %}--{% else %}{{ sb.percentage }}%{% endif %}
+                </span>
+              </div>
+            </td>
+            <td>
+              {% if sb.total == 0 %}
+                <span class="text-muted small">No sessions held yet</span>
+              {% elif sb.percentage >= 75 %}
+                {% set can_miss = ((sb.present - (0.75 * sb.total)) / 0.75)|int %}
+                {% if can_miss > 0 %}
+                  <span class="margin-pill-safe"><i class="fa fa-shield mr-1"></i> Can miss up to {{ can_miss }} class(es)</span>
+                {% else %}
+                  <span class="margin-pill-safe"><i class="fa fa-check mr-1"></i> On the 75% boundary</span>
+                {% endif %}
+              {% else %}
+                {% set need_classes = (((0.75 * sb.total) - sb.present) / 0.25)|round(0, 'ceil')|int %}
+                <span class="margin-pill-risk"><i class="fa fa-exclamation-triangle mr-1"></i> Need {{ need_classes if need_classes > 0 else 1 }} more class(es)</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if sb.total == 0 %}
+                <span class="badge badge-secondary px-2 py-1 font-weight-bold" style="font-size: 11px;">Pending</span>
+              {% elif sb.percentage >= 75 %}
+                <span class="badge badge-success px-2 py-1 font-weight-bold" style="font-size: 11px;">Eligible</span>
+              {% elif sb.percentage >= 60 %}
+                <span class="badge badge-warning px-2 py-1 font-weight-bold" style="font-size: 11px;">Average</span>
+              {% else %}
+                <span class="badge badge-danger px-2 py-1 font-weight-bold" style="font-size: 11px;">Shortage</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-4 text-muted">
+              No registered subjects found for {{ student.branch }} Semester {{ student.sem }}.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ======= Chronological Attendance Register Log ======= -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-white py-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+    <div class="mb-2 mb-md-0">
+      <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+        <i class="fa fa-calendar-check-o text-primary mr-2"></i> Verified Class Session Ledger
+      </h5>
+      <span class="text-muted small">Complete timeline of individual periods recorded for {{ student.sname }}</span>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <!-- Live Table Search Filter -->
+      <div class="search-box-pill mr-2" style="min-width: 220px;">
+        <i class="fa fa-search"></i>
+        <input type="text" id="logFilterSearch" class="form-control form-control-sm" placeholder="Filter by date or course..." onkeyup="filterLogRows()">
+      </div>
+      <span class="badge badge-light border px-3 py-1 font-weight-bold">{{ records|length }} Logs</span>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+    {% if records %}
+    <div class="table-responsive">
+      <table class="table-modern" id="historyLogsTable">
+        <thead>
+          <tr>
+            <th style="width: 60px;">#</th>
+            <th>Date</th>
+            <th>Subject / Course</th>
+            <th>Class Period</th>
+            <th class="text-center" style="width: 160px;">Recorded Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          <tr class="log-row" data-date="{{ r.date|lower }}" data-course="{{ (r.course_code or '')|lower }}">
+            <td>{{ loop.index }}</td>
+            <td class="font-weight-bold text-dark">
+              <i class="fa fa-calendar text-muted mr-1"></i> {{ r.date }}
+            </td>
+            <td>
+              <span class="badge badge-primary px-3 py-1 font-weight-bold" style="font-size: 13px; border-radius: 6px;">
+                {{ r.course_code or 'General' }}
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-light border font-weight-bold text-dark px-2 py-1" style="font-size: 11px;">
+                <i class="fa fa-clock-o text-primary mr-1"></i> {{ r.slot or 'Period 1' }}
+              </span>
+            </td>
+            <td class="text-center">
+              {% if r.status == 'Present' %}
+                <span class="status-badge-present"><i class="fa fa-check"></i> Present</span>
+              {% else %}
+                <span class="status-badge-absent"><i class="fa fa-times"></i> Absent</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-5 text-center text-muted">
+      <i class="fa fa-calendar-times-o fa-2x mb-2 text-muted"></i>
+      <p class="mb-0">No attendance dates logged yet for this student.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock body %}
+
+{% block script %}
+<script>
+  function filterLogRows() {
+    var query = document.getElementById('logFilterSearch').value.toLowerCase().trim();
+    var rows = document.querySelectorAll('.log-row');
+    rows.forEach(function(row) {
+      var d = row.getAttribute('data-date') || '';
+      var c = row.getAttribute('data-course') || '';
+      if (!query || d.includes(query) || c.includes(query)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+</script>
+{% endblock script %}

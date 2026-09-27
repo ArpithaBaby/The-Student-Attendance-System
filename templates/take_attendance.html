@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% block title %}Take Attendance - {{ selected_course }}{% endblock title %}
+{% block nav_take %}active{% endblock nav_take %}
+{% block page_title %}Mark Class Attendance{% endblock page_title %}
+
+{% block body %}
+<!-- ======= Filter & Session Config Card ======= -->
+<div class="filter-card-modern">
+  <form method="GET" action="/takeattendance" class="form-row align-items-end" id="classFilterForm">
+    <div class="col-lg-3 col-md-4 mb-2">
+      <label><i class="fa fa-calendar mr-1"></i> Attendance Date</label>
+      <input type="date" name="date" class="form-control font-weight-bold" value="{{ selected_date }}" required onchange="this.form.submit()">
+    </div>
+
+    {% if is_faculty and fac_branch %}
+    <!-- Faculty Class Info (Locked) -->
+    <div class="col-lg-3 col-md-4 mb-2">
+      <label><i class="fa fa-lock text-success mr-1"></i> Assigned Class</label>
+      <div class="form-control font-weight-bold bg-light d-flex align-items-center justify-content-between">
+        <span>{{ fac_branch }} · Sem {{ fac_sem or 'Any' }}</span>
+        <span class="badge badge-success">Faculty</span>
+      </div>
+      <input type="hidden" name="branch" value="{{ selected_branch }}">
+      <input type="hidden" name="sem" value="{{ selected_sem }}">
+    </div>
+
+    <!-- Course / Subject Selection -->
+    <div class="col-lg-2 col-md-4 mb-2">
+      <label><i class="fa fa-book mr-1"></i> Course / Subject</label>
+      {% if fac_course %}
+        <input type="text" class="form-control font-weight-bold bg-light text-primary" value="{{ fac_course }}" readonly>
+        <input type="hidden" name="course" value="{{ fac_course }}">
+      {% else %}
+        <select name="course" class="form-control font-weight-bold text-primary" onchange="this.form.submit()">
+          {% for c in available_courses %}
+            <option value="{{ c.course_code }}" {% if selected_course == c.course_code %}selected{% endif %}>
+              {{ c.course_code }}
+            </option>
+          {% else %}
+            <option value="GENERAL">General</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+    </div>
+
+    <!-- Period Number (1 to 6) asked right as course is selected -->
+    <div class="col-lg-2 col-md-4 mb-2">
+      <label><i class="fa fa-bell-o text-primary mr-1"></i> Period Number</label>
+      <select name="period" class="form-control font-weight-bold text-dark" onchange="this.form.submit()">
+        {% for p in ['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6'] %}
+          <option value="{{ p }}" {% if selected_period == p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-lg-2 col-md-12 mb-2">
+      <button type="submit" class="btn btn-gradient-primary btn-block font-weight-bold">
+        <i class="fa fa-refresh mr-1"></i> Load Roll
+      </button>
+    </div>
+
+    {% else %}
+    <!-- Admin Full Branch/Sem/Course/Period Selection -->
+    <div class="col-lg-2 col-md-4 mb-2">
+      <label><i class="fa fa-building mr-1"></i> Branch</label>
+      <select name="branch" class="form-control font-weight-bold" onchange="this.form.submit()">
+        {% for d in departments %}
+          <option value="{{ d.branch }}" {% if selected_branch == d.branch %}selected{% endif %}>{{ d.branch }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-lg-2 col-md-4 mb-2">
+      <label><i class="fa fa-graduation-cap mr-1"></i> Semester</label>
+      <select name="sem" class="form-control font-weight-bold" onchange="this.form.submit()">
+        {% for s in range(1, 9) %}
+          <option value="{{ s }}" {% if selected_sem == s|string %}selected{% endif %}>Semester {{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Course / Subject Selection -->
+    <div class="col-lg-2 col-md-4 mb-2">
+      <label><i class="fa fa-book mr-1"></i> Course / Subject</label>
+      <select name="course" class="form-control font-weight-bold text-primary" onchange="this.form.submit()">
+        {% for c in available_courses %}
+          <option value="{{ c.course_code }}" {% if selected_course == c.course_code %}selected{% endif %}>
+            {{ c.course_code }}
+          </option>
+        {% else %}
+          <option value="GENERAL">General</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Period Number (1 to 6) asked right with course -->
+    <div class="col-lg-2 col-md-4 mb-2">
+      <label><i class="fa fa-bell-o text-primary mr-1"></i> Period Number</label>
+      <select name="period" class="form-control font-weight-bold text-dark" onchange="this.form.submit()">
+        {% for p in ['Period 1', 'Period 2', 'Period 3', 'Period 4', 'Period 5', 'Period 6'] %}
+          <option value="{{ p }}" {% if selected_period == p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-lg-1 col-md-12 mb-2">
+      <button type="submit" class="btn btn-gradient-primary btn-block font-weight-bold px-2">
+        <i class="fa fa-refresh"></i>
+      </button>
+    </div>
+    {% endif %}
+  </form>
+</div>
+
+{% if students %}
+<!-- ======= Live Attendance Dynamic Meter Bar ======= -->
+<div class="live-meter-container">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+    <div>
+      <div class="d-flex align-items-center flex-wrap gap-2">
+        <span class="badge badge-primary px-3 py-2 font-weight-bold" style="font-size: 14px; border-radius: 8px;">
+          <i class="fa fa-book mr-1"></i> {{ selected_course }}
+        </span>
+        <span class="branch-badge ml-2">
+          {{ selected_branch }} (Sem {{ selected_sem }})
+        </span>
+        <span class="badge badge-info px-3 py-2 font-weight-bold ml-2" style="font-size: 13px; border-radius: 8px;">
+          <i class="fa fa-bell-o mr-1"></i> {{ selected_period }}
+        </span>
+        <span class="badge badge-light border px-3 py-2 font-weight-bold ml-2" style="font-size: 13px; border-radius: 8px;">
+          <i class="fa fa-calendar-o text-muted mr-1"></i> {{ selected_date }}
+        </span>
+      </div>
+      <p class="text-muted small mt-2 mb-0">Toggle individual attendance below. Changes update the live meter in real-time.</p>
+    </div>
+
+    <!-- Live Counters -->
+    <div class="mt-3 mt-md-0 d-flex align-items-center">
+      <div class="text-center px-3 border-right">
+        <span class="text-muted small font-weight-bold">TOTAL</span>
+        <div class="h4 font-weight-bold mb-0 text-dark" id="counterTotal">{{ students|length }}</div>
+      </div>
+      <div class="text-center px-3 border-right">
+        <span class="text-success small font-weight-bold">PRESENT</span>
+        <div class="h4 font-weight-bold mb-0 text-success" id="counterPresent">0</div>
+      </div>
+      <div class="text-center px-3 border-right">
+        <span class="text-danger small font-weight-bold">ABSENT</span>
+        <div class="h4 font-weight-bold mb-0 text-danger" id="counterAbsent">0</div>
+      </div>
+      <div class="text-center pl-3">
+        <span class="text-primary small font-weight-bold">TURNOUT</span>
+        <div class="h4 font-weight-bold mb-0 text-primary" id="counterTurnout">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-time dynamic visual progress bar -->
+  <div class="live-meter-bar">
+    <div class="live-meter-present" id="meterPresentBar" style="width: 0%;" title="Present"></div>
+    <div class="live-meter-absent" id="meterAbsentBar" style="width: 0%;" title="Absent"></div>
+  </div>
+</div>
+
+<!-- ======= Attendance Form and Table ======= -->
+<form method="POST" action="/takeattendance" id="attendanceForm">
+  <input type="hidden" name="date" value="{{ selected_date }}">
+  <input type="hidden" name="branch" value="{{ selected_branch }}">
+  <input type="hidden" name="sem" value="{{ selected_sem }}">
+  <input type="hidden" name="course" value="{{ selected_course }}">
+  <input type="hidden" name="period" value="{{ selected_period }}">
+  <input type="hidden" name="slot" value="{{ selected_period }}">
+
+  <div class="card shadow-sm border-0 mb-4">
+    <!-- Toolbar Header -->
+    <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center py-3">
+      <!-- Instant Search Filter -->
+      <div class="search-box-pill flex-grow-1 mr-md-4 mb-2 mb-md-0" style="max-width: 380px;">
+        <i class="fa fa-search"></i>
+        <input type="text" id="studentQuickFilter" class="form-control form-control-sm" placeholder="Filter student name or roll..." onkeyup="quickFilterStudents()">
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="d-flex align-items-center">
+        <button type="button" class="btn btn-sm btn-outline-success font-weight-bold mr-2" style="border-radius: 8px;" onclick="setAllAttendance('Present')">
+          <i class="fa fa-check-circle mr-1"></i> All Present
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger font-weight-bold mr-2" style="border-radius: 8px;" onclick="setAllAttendance('Absent')">
+          <i class="fa fa-times-circle mr-1"></i> All Absent
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold" style="border-radius: 8px;" onclick="invertAttendance()">
+          <i class="fa fa-exchange mr-1"></i> Invert
+        </button>
+      </div>
+    </div>
+
+    <!-- Table of Students -->
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table-modern" id="attendanceTable">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>Roll Number</th>
+              <th>Student Name</th>
+              <th>Branch</th>
+              <th>Sem</th>
+              <th>Historical {{ selected_course }} %</th>
+              <th class="text-center" style="width: 260px;">Attendance Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in students %}
+            <tr class="student-row" data-name="{{ item.student.sname|lower }}" data-roll="{{ item.student.rollno|lower }}">
+              <td>{{ loop.index }}</td>
+              <td>
+                <span class="badge badge-light border font-weight-bold text-dark px-2 py-1" style="font-size: 13px;">
+                  {{ item.student.rollno }}
+                </span>
+              </td>
+              <td>
+                <span class="avatar-initials">{{ item.student.sname[0]|upper }}</span>
+                <span class="font-weight-bold text-dark">{{ item.student.sname }}</span>
+              </td>
+              <td>
+                <span class="branch-badge {% if item.student.branch == 'CU' %}branch-badge-cu{% elif item.student.branch == 'CS' %}branch-badge-cs{% elif item.student.branch == 'AI' %}branch-badge-ai{% elif item.student.branch == 'MECH' %}branch-badge-mech{% endif %}">
+                  {{ item.student.branch }}
+                </span>
+              </td>
+              <td>Sem {{ item.student.sem }}</td>
+              <td>
+                <span class="badge-status-pill d-inline-flex" style="background: {% if item.stats.percentage >= 75 %}#ecfdf5; color: #047857; border-color: #a7f3d0;{% elif item.stats.percentage >= 60 %}#fffbeb; color: #b45309; border-color: #fde68a;{% else %}#fef2f2; color: #b91c1c; border-color: #fecaca;{% endif %};">
+                  <b>{{ item.stats.percentage }}%</b> &nbsp;({{ item.stats.present_count }}/{{ item.stats.total_classes }})
+                </span>
+              </td>
+              <td class="text-center">
+                <input type="hidden" name="student_ids" value="{{ item.student.id }}">
+                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                  <label class="btn btn-sm att-toggle-present {% if item.today_status == 'Present' %}active{% endif %}" onclick="onToggleClick(this, 'Present')">
+                    <input type="radio" name="status_{{ item.student.id }}" value="Present" autocomplete="off" {% if item.today_status == 'Present' %}checked{% endif %}>
+                    <i class="fa fa-check mr-1"></i> Present
+                  </label>
+                  <label class="btn btn-sm att-toggle-absent {% if item.today_status == 'Absent' %}active{% endif %}" onclick="onToggleClick(this, 'Absent')">
+                    <input type="radio" name="status_{{ item.student.id }}" value="Absent" autocomplete="off" {% if item.today_status == 'Absent' %}checked{% endif %}>
+                    <i class="fa fa-times mr-1"></i> Absent
+                  </label>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Submit Save Bar -->
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+      <span class="text-muted small">
+        <i class="fa fa-info-circle mr-1"></i> Submitting will automatically recalculate student aggregate percentages.
+      </span>
+      <button type="submit" class="btn btn-gradient-primary btn-lg font-weight-bold px-4 shadow">
+        <i class="fa fa-floppy-o mr-2"></i> Save Attendance for {{ selected_course }} ({{ selected_date }})
+      </button>
+    </div>
+  </div>
+</form>
+{% else %}
+<div class="card shadow-sm border-0 text-center py-5">
+  <div class="card-body">
+    <i class="fa fa-folder-open-o fa-3x text-muted mb-3"></i>
+    <h4 class="font-weight-bold text-dark">No Students Found</h4>
+    <p class="text-muted">There are currently no enrolled students in <b>{{ selected_branch }}</b> Semester <b>{{ selected_sem }}</b>.</p>
+    <a href="/admin?tab=student" class="btn btn-gradient-primary font-weight-bold mt-2">
+      <i class="fa fa-user-plus mr-1"></i> Enroll Student in Admin Panel
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock body %}
+
+{% block script %}
+<script>
+  // Recalculate Live Attendance Meter
+  function updateLiveMeter() {
+    var radioGroups = document.querySelectorAll('input[type="radio"]:checked');
+    var total = radioGroups.length;
+    var present = 0;
+    var absent = 0;
+
+    radioGroups.forEach(function(rb) {
+      if (rb.value === 'Present') {
+        present++;
+      } else if (rb.value === 'Absent') {
+        absent++;
+      }
+    });
+
+    var presentPct = total > 0 ? Math.round((present / total) * 100) : 0;
+    var absentPct = total > 0 ? (100 - presentPct) : 0;
+
+    var elTotal = document.getElementById('counterTotal');
+    var elPresent = document.getElementById('counterPresent');
+    var elAbsent = document.getElementById('counterAbsent');
+    var elTurnout = document.getElementById('counterTurnout');
+    var barPresent = document.getElementById('meterPresentBar');
+    var barAbsent = document.getElementById('meterAbsentBar');
+
+    if (elTotal) elTotal.textContent = total;
+    if (elPresent) elPresent.textContent = present;
+    if (elAbsent) elAbsent.textContent = absent;
+    if (elTurnout) elTurnout.textContent = presentPct + '%';
+
+    if (barPresent) barPresent.style.width = presentPct + '%';
+    if (barAbsent) barAbsent.style.width = absentPct + '%';
+  }
+
+  // Handle single toggle click
+  function onToggleClick(labelEl, status) {
+    var radio = labelEl.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
+
+    var container = labelEl.parentElement;
+    var sibling = (status === 'Present') 
+      ? container.querySelector('.att-toggle-absent') 
+      : container.querySelector('.att-toggle-present');
+
+    labelEl.classList.add('active');
+    if (sibling) sibling.classList.remove('active');
+
+    setTimeout(updateLiveMeter, 50);
+  }
+
+  // Set all students to Present or Absent
+  function setAllAttendance(targetStatus) {
+    var rows = document.querySelectorAll('.student-row');
+    rows.forEach(function(row) {
+      var radioPresent = row.querySelector('input[value="Present"]');
+      var radioAbsent = row.querySelector('input[value="Absent"]');
+      var labelPresent = row.querySelector('.att-toggle-present');
+      var labelAbsent = row.querySelector('.att-toggle-absent');
+
+      if (targetStatus === 'Present') {
+        if (radioPresent) radioPresent.checked = true;
+        if (labelPresent) labelPresent.classList.add('active');
+        if (labelAbsent) labelAbsent.classList.remove('active');
+      } else {
+        if (radioAbsent) radioAbsent.checked = true;
+        if (labelAbsent) labelAbsent.classList.add('active');
+        if (labelPresent) labelPresent.classList.remove('active');
+      }
+    });
+    updateLiveMeter();
+  }
+
+  // Invert current attendance selection
+  function invertAttendance() {
+    var rows = document.querySelectorAll('.student-row');
+    rows.forEach(function(row) {
+      var radioPresent = row.querySelector('input[value="Present"]');
+      var radioAbsent = row.querySelector('input[value="Absent"]');
+      var labelPresent = row.querySelector('.att-toggle-present');
+      var labelAbsent = row.querySelector('.att-toggle-absent');
+
+      if (radioPresent && radioPresent.checked) {
+        radioAbsent.checked = true;
+        labelAbsent.classList.add('active');
+        labelPresent.classList.remove('active');
+      } else if (radioAbsent && radioAbsent.checked) {
+        radioPresent.checked = true;
+        labelPresent.classList.add('active');
+        labelAbsent.classList.remove('active');
+      }
+    });
+    updateLiveMeter();
+  }
+
+  // Real-time table filter
+  function quickFilterStudents() {
+    var query = document.getElementById('studentQuickFilter').value.toLowerCase().trim();
+    var rows = document.querySelectorAll('.student-row');
+    rows.forEach(function(row) {
+      var name = row.getAttribute('data-name') || '';
+      var roll = row.getAttribute('data-roll') || '';
+      if (!query || name.includes(query) || roll.includes(query)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  // Initial meter calculation on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    updateLiveMeter();
+  });
+</script>
+{% endblock script %}

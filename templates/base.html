@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+  <title>{% block title %}{% endblock title %} - SmartTrack Attendance Portal</title>
+  <meta content="Smart Student Attendance and Course Tracking System" name="description">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="/static/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/assets/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+  <link href="/static/assets/vendor/aos/aos.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      --accent: #06b6d4;
+      --bg-body: #f8fafc;
+      --sidebar-bg: #0f172a;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* App Layout Container */
+    .app-wrapper {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Left Sidebar */
+    .app-sidebar {
+      width: 270px;
+      background: var(--sidebar-bg);
+      color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 1000;
+      transition: all 0.3s ease;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .sidebar-brand {
+      padding: 24px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-decoration: none !important;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    }
+
+    .brand-text h4 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-text span {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    .sidebar-menu {
+      padding: 20px 14px;
+      flex-grow: 1;
+      overflow-y: auto;
+      list-style: none;
+      margin: 0;
+    }
+
+    .menu-header {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #475569;
+      padding: 12px 14px 6px;
+    }
+
+    .sidebar-item {
+      margin-bottom: 4px;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 10px;
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none !important;
+      transition: all 0.2s ease;
+      gap: 12px;
+    }
+
+    .sidebar-link i {
+      font-size: 17px;
+      width: 22px;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .sidebar-link:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateX(3px);
+    }
+
+    .sidebar-link.active {
+      color: #ffffff;
+      background: var(--primary-gradient);
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    }
+
+    .sidebar-link.active i {
+      color: #ffffff;
+    }
+
+    .sidebar-footer {
+      padding: 18px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .user-profile-widget {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-avatar-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #3b82f6;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .user-info {
+      flex-grow: 1;
+      margin-left: 10px;
+      overflow: hidden;
+    }
+
+    .user-info .user-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .user-info .user-role {
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .btn-logout {
+      color: #94a3b8;
+      background: transparent;
+      border: none;
+      padding: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .btn-logout:hover {
+      color: #ef4444;
+    }
+
+    /* Main Content Area */
+    .app-main {
+      margin-left: 270px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background-color: var(--bg-body);
+    }
+
+    /* Top Navigation Bar */
+    .app-topbar {
+      height: 72px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 900;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .topbar-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .badge-status-pill {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #bae6fd;
+    }
+
+    .badge-status-pill .indicator-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #0284c7;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    /* Page Content */
+    .app-content {
+      padding: 32px;
+      flex-grow: 1;
+    }
+
+    /* Modern Card Styles */
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      transition: all 0.2s ease;
+    }
+
+    .card-header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 24px;
+      border-top-left-radius: 16px !important;
+      border-top-right-radius: 16px !important;
+    }
+
+    .card-body {
+      padding: 24px;
+    }
+
+    /* Metric Stat Card */
+    .stat-metric-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-metric-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .metric-icon-box {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .metric-data h3 {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    .metric-data p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Modern Table Design */
+    .table-modern {
+      width: 100%;
+      margin: 0;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .table-modern thead th {
+      background: #f8fafc;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-color);
+      border-top: none;
+    }
+
+    .table-modern tbody td {
+      padding: 16px 20px;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--border-color);
+      color: #1e293b;
+      font-size: 14px;
+    }
+
+    .table-modern tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-modern tbody tr:hover td {
+      background-color: #f8fafc;
+    }
+
+    /* Student Initials Avatar */
+    .avatar-initials {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #e0e7ff;
+      color: #4338ca;
+      font-weight: 700;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      vertical-align: middle;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* High-Visibility Custom Badges */
+    .branch-badge {
+      background-color: #0f172a !important;
+      color: #ffffff !important;
+      padding: 5px 12px !important;
+      border-radius: 8px !important;
+      font-weight: 800 !important;
+      font-size: 12px !important;
+      display: inline-block !important;
+      letter-spacing: 0.5px !important;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2) !important;
+    }
+    .branch-badge-cu { background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%) !important; }
+    .branch-badge-cs { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important; }
+    .branch-badge-ai { background: linear-gradient(135deg, #7e22ce 0%, #6b21a8 100%) !important; }
+    .branch-badge-mech { background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important; }
+
+    .badge-eligible {
+      background: var(--success-gradient) !important;
+      color: #ffffff !important;
+      padding: 6px 14px !important;
+      border-radius: 20px !important;
+      font-weight: 700 !important;
+      font-size: 12px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+    }
+
+    .badge-shortage {
+      background: var(--danger-gradient) !important;
+      color: #ffffff !important;
+      padding: 6px 14px !important;
+      border-radius: 20px !important;
+      font-weight: 700 !important;
+      font-size: 12px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+    }
+
+    .badge-nodata {
+      background: #94a3b8 !important;
+      color: #ffffff !important;
+      padding: 6px 14px !important;
+      border-radius: 20px !important;
+      font-weight: 600 !important;
+      font-size: 12px !important;
+      display: inline-block !important;
+    }
+
+    /* Core Course & Status Badges */
+    .badge-primary, .course-badge {
+      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(79, 70, 229, 0.4) !important;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25) !important;
+      font-weight: 700 !important;
+    }
+    .badge-success {
+      background: var(--success-gradient) !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+    .badge-warning {
+      background: var(--warning-gradient) !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+    .badge-info {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+    .badge-secondary {
+      background: #64748b !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+
+    .badge-light, .badge-count-pill {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+      font-weight: 700 !important;
+      font-size: 12px !important;
+      border-radius: 8px !important;
+      padding: 5px 12px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      line-height: 1.4 !important;
+    }
+
+    .status-badge-present {
+      background: var(--success-gradient) !important;
+      color: #ffffff !important;
+      padding: 6px 14px !important;
+      border-radius: 20px !important;
+      font-weight: 700 !important;
+      font-size: 12px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+    }
+
+    .status-badge-absent {
+      background: var(--danger-gradient) !important;
+      color: #ffffff !important;
+      padding: 6px 14px !important;
+      border-radius: 20px !important;
+      font-weight: 700 !important;
+      font-size: 12px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+    }
+
+    /* Dynamic Attendance Toggle Switches */
+    .att-toggle-present {
+      border: 2px solid #10b981 !important;
+      color: #047857 !important;
+      background-color: #ecfdf5 !important;
+      font-weight: 700 !important;
+      border-radius: 8px !important;
+      padding: 7px 16px !important;
+      transition: all 0.2s ease !important;
+      cursor: pointer;
+    }
+    .att-toggle-present.active, .att-toggle-present:hover {
+      background: var(--success-gradient) !important;
+      color: #ffffff !important;
+      border-color: #059669 !important;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35) !important;
+    }
+
+    .att-toggle-absent {
+      border: 2px solid #ef4444 !important;
+      color: #b91c1c !important;
+      background-color: #fef2f2 !important;
+      font-weight: 700 !important;
+      border-radius: 8px !important;
+      padding: 7px 16px !important;
+      transition: all 0.2s ease !important;
+      cursor: pointer;
+    }
+    .att-toggle-absent.active, .att-toggle-absent:hover {
+      background: var(--danger-gradient) !important;
+      color: #ffffff !important;
+      border-color: #dc2626 !important;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35) !important;
+    }
+
+    /* Buttons */
+    .btn-gradient-primary {
+      background: var(--primary-gradient);
+      color: #ffffff !important;
+      border: none;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 10px 20px;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+      transition: all 0.2s ease;
+    }
+    .btn-gradient-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.4);
+    }
+
+    .btn-gradient-danger {
+      background: var(--danger-gradient);
+      color: #ffffff !important;
+      border: none;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 10px 20px;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+      transition: all 0.2s ease;
+    }
+    .btn-gradient-danger:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Form Controls */
+    .form-control {
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--text-main);
+      transition: all 0.2s ease;
+    }
+    .form-control:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    /* Dashboard Hero Banner */
+    .dashboard-hero {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+      border-radius: 20px;
+      padding: 32px 36px;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(67, 56, 202, 0.25);
+      margin-bottom: 28px;
+    }
+    .dashboard-hero::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.4) 0%, rgba(255,255,255,0) 70%);
+      border-radius: 50%;
+    }
+    .dashboard-hero::after {
+      content: '';
+      position: absolute;
+      bottom: -60px;
+      left: 30%;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, rgba(255,255,255,0) 70%);
+      border-radius: 50%;
+    }
+    .dashboard-hero h2 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+    .dashboard-hero p {
+      color: #cbd5e1;
+      font-size: 15px;
+      margin-bottom: 0;
+      max-width: 650px;
+    }
+
+    /* Action Card Modern */
+    .action-card-modern {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    }
+    .action-card-modern:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+      border-color: #cbd5e1;
+    }
+    .action-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    /* Live Attendance Dynamic Meter */
+    .live-meter-container {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    }
+    .live-meter-bar {
+      height: 12px;
+      background: #f1f5f9;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      margin: 12px 0 8px;
+    }
+    .live-meter-present {
+      background: var(--success-gradient);
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .live-meter-absent {
+      background: var(--danger-gradient);
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Quick Filter Toolbar */
+    .filter-card-modern {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02);
+    }
+    .filter-card-modern label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+
+    /* Search Box Pill */
+    .search-box-pill {
+      position: relative;
+    }
+    .search-box-pill i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 15px;
+    }
+    .search-box-pill input {
+      padding-left: 40px;
+      border-radius: 10px;
+    }
+
+    /* Mobile Hamburger */
+    .mobile-nav-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      font-size: 22px;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    @media (max-width: 991px) {
+      .app-sidebar {
+        transform: translateX(-100%);
+      }
+      .app-sidebar.show {
+        transform: translateX(0);
+      }
+      .app-main {
+        margin-left: 0;
+      }
+      .mobile-nav-toggle {
+        display: block;
+      }
+    }
+  </style>
+
+  {% block style %}{% endblock style %}
+</head>
+
+<body>
+
+  <div class="app-wrapper">
+
+    <!-- ======= Modern Left Sidebar ======= -->
+    <aside class="app-sidebar" id="appSidebar">
+      <a href="/" class="sidebar-brand">
+        <div class="brand-icon">
+          <i class="fa fa-graduation-cap"></i>
+        </div>
+        <div class="brand-text">
+          <h4>SmartTrack</h4>
+          <span>Attendance Portal</span>
+        </div>
+      </a>
+
+      <ul class="sidebar-menu">
+        <li class="menu-header">Overview</li>
+        <li class="sidebar-item">
+          <a href="/" class="sidebar-link {% block home %}{% endblock home %}">
+            <i class="fa fa-th-large"></i> Dashboard
+          </a>
+        </li>
+
+        <li class="menu-header">Attendance Management</li>
+        {% if current_user.is_authenticated and current_user.role == 'faculty' %}
+        <li class="sidebar-item">
+          <a href="/takeattendance" class="sidebar-link {% block nav_take %}{% endblock nav_take %}">
+            <i class="fa fa-calendar-check-o"></i> Take Attendance
+          </a>
+        </li>
+        {% endif %}
+        <li class="sidebar-item">
+          <a href="/viewattendance" class="sidebar-link {% block nav_view %}{% endblock nav_view %}">
+            <i class="fa fa-bar-chart"></i> {% if current_user.role == 'faculty' %}My Class Attendance{% else %}Attendance Reports{% endif %}
+          </a>
+        </li>
+
+        <li class="menu-header">Records & Directory</li>
+        <li class="sidebar-item">
+          <a href="/studentdetails" class="sidebar-link {% block nav_students %}{% endblock nav_students %}">
+            <i class="fa fa-users"></i> Student Directory & Search
+          </a>
+        </li>
+
+        {% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <li class="menu-header">System Control</li>
+        <li class="sidebar-item">
+          <a href="/admin" class="sidebar-link {% block nav_admin %}{% endblock nav_admin %}">
+            <i class="fa fa-sliders"></i> Admin Control Panel
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+
+      <!-- User Profile Widget -->
+      <div class="sidebar-footer">
+        {% if current_user.is_authenticated %}
+        <div class="user-profile-widget">
+          <div class="user-avatar-circle" style="background: {% if current_user.role == 'admin' %}#4f46e5{% else %}#059669{% endif %};">
+            {{ current_user.username[0]|upper }}
+          </div>
+          <div class="user-info">
+            <div class="user-name">{{ current_user.username }}</div>
+            <div class="user-role">
+              {% if current_user.role == 'admin' %}
+                <span class="badge badge-primary px-2 py-0" style="font-size: 10px;">Admin</span>
+              {% else %}
+                <span class="badge badge-success px-2 py-0" style="font-size: 10px;">Faculty</span>
+                <span class="text-muted d-block small" style="font-size: 10px;">{{ current_user.branch or 'General' }}{% if current_user.sem %} · Sem {{ current_user.sem }}{% endif %}</span>
+              {% endif %}
+            </div>
+          </div>
+          <a href="/logout" class="btn-logout" title="Log Out">
+            <i class="fa fa-sign-out"></i>
+          </a>
+        </div>
+        {% else %}
+        <div class="text-center">
+          <a href="/login" class="btn btn-sm btn-outline-light btn-block font-weight-bold">
+            <i class="fa fa-sign-in"></i> Sign In
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </aside>
+
+    <!-- ======= Main Content Shell ======= -->
+    <div class="app-main">
+
+      <!-- Sticky Topbar -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button class="mobile-nav-toggle" onclick="toggleSidebar()">
+            <i class="fa fa-bars"></i>
+          </button>
+          <h2 class="topbar-title">{% block page_title %}Dashboard{% endblock page_title %}</h2>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Database Live Status Pill -->
+          <div class="badge-status-pill d-none d-md-flex">
+            <span class="indicator-dot"></span>
+            <span>MySQL: attendance</span>
+          </div>
+
+          <!-- Real-Time Clock -->
+          <div class="text-muted font-weight-bold small d-none d-lg-block" id="liveClock">
+            --:--
+          </div>
+
+          {% if current_user.is_authenticated and current_user.role == 'faculty' %}
+          <a href="/takeattendance" class="btn btn-gradient-primary btn-sm px-3 font-weight-bold">
+            <i class="fa fa-calendar-check-o mr-1"></i> Quick Attendance
+          </a>
+          {% elif current_user.is_authenticated and current_user.role == 'admin' %}
+          <a href="/admin?tab=student" class="btn btn-gradient-primary btn-sm px-3 font-weight-bold">
+            <i class="fa fa-user-plus mr-1"></i> Enroll Student
+          </a>
+          {% endif %}
+        </div>
+      </header>
+
+      <!-- Main Container -->
+      <main class="app-content">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category != 'warning' else 'warning' }} alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 12px;">
+                <i class="fa fa-info-circle mr-1"></i> {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block body %}{% endblock body %}
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- Vendor JS Files -->
+  <script src="/static/assets/vendor/jquery/jquery.min.js"></script>
+  <script src="/static/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Live Clock & Sidebar Script -->
+  <script>
+    function updateClock() {
+      var now = new Date();
+      var hours = now.getHours();
+      var minutes = now.getMinutes();
+      var ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      minutes = minutes < 10 ? '0' + minutes : minutes;
+      var timeStr = hours + ':' + minutes + ' ' + ampm;
+      var el = document.getElementById('liveClock');
+      if (el) el.innerHTML = '<i class="fa fa-clock-o mr-1"></i> ' + timeStr;
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    function toggleSidebar() {
+      var sb = document.getElementById('appSidebar');
+      if (sb) sb.classList.toggle('show');
+    }
+  </script>
+
+  {% block script %}{% endblock script %}
+</body>
+
+</html>

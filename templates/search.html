@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}Search Student Attendance{% endblock title %}
+{% block nav_search %}active{% endblock nav_search %}
+{% block page_title %}Student Profile & Record Search{% endblock page_title %}
+
+{% block body %}
+<!-- ======= Search Bar Card ======= -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body p-4">
+    <form action="/search" method="post" class="form-row align-items-center">
+      <div class="col-md-9 mb-2 mb-md-0">
+        <div class="search-box-pill">
+          <i class="fa fa-search"></i>
+          <input type="text" class="form-control form-control-lg font-weight-bold" name="query" id="query" placeholder="Search by student name (e.g. Aarav) or roll number (e.g. U2509001)..." value="{{ search_term }}" required autofocus>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-gradient-primary btn-lg btn-block font-weight-bold">
+          <i class="fa fa-search mr-1"></i> Search Records
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ======= Search Results Container ======= -->
+{% if results %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+      Matching Students ({{ results|length }})
+    </h5>
+    <span class="text-muted small">Query: "<b>{{ search_term }}</b>"</span>
+  </div>
+
+  <div class="row">
+    {% for item in results %}
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow-sm border-0 h-100">
+        <!-- Student Header -->
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+          <div class="d-flex align-items-center">
+            <span class="avatar-initials" style="width: 44px; height: 44px; font-size: 16px;">
+              {{ item.bio.sname[0]|upper }}
+            </span>
+            <div>
+              <h5 class="mb-0 font-weight-bold text-dark">{{ item.bio.sname }}</h5>
+              <span class="badge badge-light border font-weight-bold text-dark px-2 py-1 mt-1" style="font-size: 12px;">
+                {{ item.bio.rollno }}
+              </span>
+            </div>
+          </div>
+          <div>
+            <span class="branch-badge {% if item.bio.branch == 'CU' %}branch-badge-cu{% elif item.bio.branch == 'CS' %}branch-badge-cs{% elif item.bio.branch == 'AI' %}branch-badge-ai{% elif item.bio.branch == 'MECH' %}branch-badge-mech{% endif %}">
+              {{ item.bio.branch }}
+            </span>
+            <span class="text-muted small ml-1">Sem {{ item.bio.sem }}</span>
+          </div>
+        </div>
+
+        <div class="card-body p-4">
+          <!-- Attendance Standings Highlight -->
+          <div class="p-3 mb-4 rounded" style="background: #f8fafc; border: 1px solid var(--border-color);">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="font-weight-bold text-dark" style="font-size: 14px;">Overall Attendance Standing</span>
+              <span class="font-weight-bold {% if item.stats.percentage >= 75 %}text-success{% elif item.stats.percentage >= 60 %}text-warning{% else %}text-danger{% endif %}" style="font-size: 22px;">
+                {{ item.stats.percentage }}%
+              </span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress mb-3" style="height: 12px; border-radius: 6px; background: #e2e8f0;">
+              <div class="progress-bar" 
+                   role="progressbar" 
+                   style="width: {{ item.stats.percentage }}%; background: {% if item.stats.percentage >= 75 %}var(--success-gradient){% elif item.stats.percentage >= 60 %}var(--warning-gradient){% else %}var(--danger-gradient){% endif %};" 
+                   aria-valuenow="{{ item.stats.percentage }}" 
+                   aria-valuemin="0" 
+                   aria-valuemax="100"></div>
+            </div>
+
+            <!-- Counter Columns -->
+            <div class="row text-center pt-2 border-top">
+              <div class="col-4 border-right">
+                <span class="text-muted small font-weight-bold">TOTAL</span>
+                <div class="font-weight-bold text-dark">{{ item.stats.total_classes }}</div>
+              </div>
+              <div class="col-4 border-right">
+                <span class="text-success small font-weight-bold">PRESENT</span>
+                <div class="font-weight-bold text-success">{{ item.stats.present_count }}</div>
+              </div>
+              <div class="col-4">
+                <span class="text-danger small font-weight-bold">ABSENT</span>
+                <div class="font-weight-bold text-danger">{{ item.stats.absent_count }}</div>
+              </div>
+            </div>
+
+            <!-- Eligibility Badge -->
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+              <div>
+                {% if item.stats.percentage >= 75 %}
+                  <span class="badge-eligible"><i class="fa fa-check-circle"></i> Eligible for Exams</span>
+                {% elif item.stats.total_classes == 0 %}
+                  <span class="badge-nodata">No Attendance Marked</span>
+                {% else %}
+                  <span class="badge-shortage"><i class="fa fa-exclamation-triangle"></i> Shortage (&lt;75%)</span>
+                {% endif %}
+              </div>
+              <a href="/attendance/student/{{ item.bio.rollno }}" class="btn btn-sm btn-outline-primary font-weight-bold">
+                Full Report &rarr;
+              </a>
+            </div>
+          </div>
+
+          <!-- Student Profile Details -->
+          <h6 class="font-weight-bold text-muted text-uppercase mb-2" style="font-size: 11px; letter-spacing: 0.8px;">Contact & Profile Information</h6>
+          <div class="row text-dark small">
+            <div class="col-sm-6 mb-1">
+              <i class="fa fa-envelope text-muted mr-1"></i> {{ item.bio.email or 'N/A' }}
+            </div>
+            <div class="col-sm-6 mb-1">
+              <i class="fa fa-phone text-muted mr-1"></i> {{ item.bio.number or 'N/A' }}
+            </div>
+            <div class="col-12 mt-1">
+              <i class="fa fa-map-marker text-muted mr-1"></i> {{ item.bio.address or 'N/A' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+{% elif search_term %}
+  <div class="card shadow-sm border-0 text-center py-5">
+    <div class="card-body">
+      <i class="fa fa-exclamation-circle fa-3x text-warning mb-3"></i>
+      <h5 class="text-dark font-weight-bold">No Students Found</h5>
+      <p class="text-muted mb-0">No records matched your search term "<b>{{ search_term }}</b>". Try searching by another student name or roll number.</p>
+    </div>
+  </div>
+{% else %}
+  <div class="card shadow-sm border-0 text-center py-5">
+    <div class="card-body">
+      <i class="fa fa-search fa-3x text-muted mb-3"></i>
+      <h5 class="text-dark font-weight-bold">Ready to Search</h5>
+      <p class="text-muted mb-0">Search by student name (e.g. <i>Aarav</i>, <i>U2509001</i>) or roll number to view real-time academic standing.</p>
+    </div>
+  </div>
+{% endif %}
+{% endblock body %}

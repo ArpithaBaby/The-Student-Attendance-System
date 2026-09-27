@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% block title %}Student Directory & Search{% endblock title %}
+{% block nav_students %}active{% endblock nav_students %}
+{% block page_title %}Student Directory & Academic Search{% endblock page_title %}
+
+{% block body %}
+<!-- ======= Filter & Search Hub ======= -->
+<div class="filter-card-modern mb-4">
+  <form method="GET" action="/studentdetails" id="directoryFilterForm">
+    <div class="row align-items-end">
+      <!-- Search Input -->
+      <div class="col-lg-4 col-md-6 mb-3">
+        <label><i class="fa fa-search mr-1 text-primary"></i> Search Keyword</label>
+        <div class="search-box-pill">
+          <i class="fa fa-search"></i>
+          <input type="text" name="q" id="rosterSearch" class="form-control" placeholder="Search by roll no, student name, or email..." value="{{ search_term }}" onkeyup="filterRosterLive()">
+        </div>
+      </div>
+
+      <!-- Department / Branch Filter -->
+      <div class="col-lg-2 col-md-3 mb-3">
+        <label><i class="fa fa-building mr-1 text-primary"></i> Department</label>
+        {% if is_faculty %}
+          <input type="text" class="form-control font-weight-bold" value="{{ selected_branch }}" readonly style="background-color: #f1f5f9;">
+          <input type="hidden" name="branch" value="{{ selected_branch }}">
+        {% else %}
+          <select name="branch" class="form-control font-weight-bold" onchange="this.form.submit()">
+            <option value="">-- All Branches --</option>
+            {% for d in departments %}
+              <option value="{{ d.branch }}" {% if selected_branch == d.branch %}selected{% endif %}>{{ d.branch }}</option>
+            {% endfor %}
+          </select>
+        {% endif %}
+      </div>
+
+      <!-- Semester Filter -->
+      <div class="col-lg-2 col-md-3 mb-3">
+        <label><i class="fa fa-graduation-cap mr-1 text-primary"></i> Semester</label>
+        <select name="sem" class="form-control" onchange="this.form.submit()">
+          <option value="">-- All Semesters --</option>
+          {% for s in range(1, 9) %}
+            <option value="{{ s }}" {% if selected_sem == s|string %}selected{% endif %}>Semester {{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Attendance Standing Filter -->
+      <div class="col-lg-2 col-md-4 mb-3">
+        <label><i class="fa fa-shield mr-1 text-primary"></i> Attendance Status</label>
+        <select name="standing" class="form-control font-weight-bold" onchange="this.form.submit()">
+          <option value="all" {% if selected_standing == 'all' %}selected{% endif %}>All Standings</option>
+          <option value="eligible" {% if selected_standing == 'eligible' %}selected{% endif %}>&ge; 75% Eligible</option>
+          <option value="shortage" {% if selected_standing == 'shortage' %}selected{% endif %}>&lt; 75% Shortage</option>
+        </select>
+      </div>
+
+      <!-- Submit & Clear Controls -->
+      <div class="col-lg-2 col-md-4 mb-3 d-flex gap-2">
+        <button type="submit" class="btn btn-gradient-primary btn-block font-weight-bold" title="Filter Directory">
+          <i class="fa fa-filter mr-1"></i> Filter
+        </button>
+        {% if selected_branch or selected_sem or search_term or (selected_standing and selected_standing != 'all') %}
+        <a href="/studentdetails" class="btn btn-outline-secondary font-weight-bold ml-2" title="Reset Filters" style="border-radius: 10px;">
+          <i class="fa fa-times"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- ======= Directory Header & Roster Table ======= -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center py-3">
+    <div>
+      <h5 class="mb-0 font-weight-bold" style="color: var(--text-main);">
+        <i class="fa fa-address-book-o text-primary mr-2"></i> Student Roster & Academic Profiles
+      </h5>
+      <span class="text-muted small">
+        Showing <b>{{ students|length }}</b> student(s)
+        {% if selected_branch %}in Department <b>{{ selected_branch }}</b>{% endif %}
+        {% if selected_sem %}· Semester <b>{{ selected_sem }}</b>{% endif %}
+        {% if selected_standing == 'eligible' %}· (Only <b>&ge; 75% Eligible</b>){% elif selected_standing == 'shortage' %}· (Only <b>&lt; 75% Shortage Risk</b>){% endif %}
+      </span>
+    </div>
+
+    {% if current_user.role == 'admin' %}
+    <div class="mt-2 mt-md-0">
+      <a href="/admin?tab=student" class="btn btn-gradient-primary btn-sm font-weight-bold px-3 py-2">
+        <i class="fa fa-user-plus mr-1"></i> Enroll Student
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table-modern" id="rosterTable">
+        <thead>
+          <tr>
+            <th>Roll Number</th>
+            <th>Student Name</th>
+            <th>Branch</th>
+            <th>Sem</th>
+            <th>Email</th>
+            <th>Contact</th>
+            <th style="min-width: 170px;">Attendance %</th>
+            <th>Status</th>
+            <th class="text-center" style="width: 130px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in students %}
+          <tr class="roster-row" data-name="{{ item.student.sname|lower }}" data-roll="{{ item.student.rollno|lower }}" data-email="{{ item.student.email|lower }}">
+            <td>
+              <span class="badge badge-light border font-weight-bold text-dark px-2 py-1" style="font-size: 13px;">
+                {{ item.student.rollno }}
+              </span>
+            </td>
+            <td>
+              <span class="avatar-initials">{{ item.student.sname[0]|upper }}</span>
+              <span class="font-weight-bold text-dark">{{ item.student.sname }}</span>
+            </td>
+            <td>
+              <span class="branch-badge {% if item.student.branch == 'CU' %}branch-badge-cu{% elif item.student.branch == 'CS' %}branch-badge-cs{% elif item.student.branch == 'AI' %}branch-badge-ai{% elif item.student.branch == 'MECH' %}branch-badge-mech{% endif %}">
+                {{ item.student.branch }}
+              </span>
+            </td>
+            <td>Sem {{ item.student.sem }}</td>
+            <td class="text-muted small">{{ item.student.email }}</td>
+            <td class="text-muted small">{{ item.student.number or 'N/A' }}</td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="progress flex-grow-1 mr-2" style="height: 10px; border-radius: 5px; background: #e2e8f0;">
+                  <div class="progress-bar" 
+                       role="progressbar" 
+                       style="width: {{ item.stats.percentage }}%; background: {% if item.stats.total_classes == 0 %}#94a3b8{% elif item.stats.percentage >= 75 %}var(--success-gradient){% elif item.stats.percentage >= 60 %}var(--warning-gradient){% else %}var(--danger-gradient){% endif %};" 
+                       aria-valuenow="{{ item.stats.percentage }}" 
+                       aria-valuemin="0" 
+                       aria-valuemax="100"></div>
+                </div>
+                <span class="font-weight-bold {% if item.stats.total_classes == 0 %}text-muted{% elif item.stats.percentage >= 75 %}text-success{% elif item.stats.percentage >= 60 %}text-warning{% else %}text-danger{% endif %}" style="font-size: 13px; min-width: 48px;">
+                  {% if item.stats.total_classes == 0 %}--{% else %}{{ item.stats.percentage }}%{% endif %}
+                </span>
+              </div>
+            </td>
+            <td>
+              {% if item.stats.total_classes == 0 %}
+                <span class="badge badge-secondary px-2 py-1" style="font-size: 11px;">No Classes</span>
+              {% elif item.stats.percentage >= 75 %}
+                <span class="badge badge-success px-2 py-1" style="font-size: 11px;">Eligible</span>
+              {% elif item.stats.percentage >= 60 %}
+                <span class="badge badge-warning px-2 py-1" style="font-size: 11px;">Average</span>
+              {% else %}
+                <span class="badge badge-danger px-2 py-1" style="font-size: 11px;">Shortage</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <a href="/attendance/student/{{ item.student.rollno }}" class="btn btn-sm btn-outline-info font-weight-bold p-1 px-2" style="border-radius: 6px;" title="View Subject Breakdown & Logs">
+                <i class="fa fa-pie-chart mr-1"></i> History
+              </a>
+              {% if current_user.role == 'admin' %}
+              <a href="/edit/{{ item.student.id }}" class="btn btn-sm btn-outline-primary font-weight-bold p-1 px-2 ml-1" style="border-radius: 6px;" title="Edit Student Bio">
+                <i class="fa fa-pencil"></i>
+              </a>
+              <a href="/admin?tab=manage" class="btn btn-sm btn-outline-danger font-weight-bold p-1 px-2 ml-1" style="border-radius: 6px;" title="Manage Student Status / Dropout">
+                <i class="fa fa-user-times"></i>
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" class="text-center py-5 text-muted">
+              <div class="my-4">
+                <i class="fa fa-search fa-3x text-muted mb-3 d-block"></i>
+                <h5>No students matching your search criteria.</h5>
+                <p class="small text-muted">Try clearing the search query or adjusting your department/semester filters.</p>
+                <a href="/studentdetails" class="btn btn-sm btn-outline-primary font-weight-bold px-3 py-2 mt-2">
+                  <i class="fa fa-refresh mr-1"></i> Reset Directory Filters
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock body %}
+
+{% block script %}
+<script>
+  function filterRosterLive() {
+    var query = document.getElementById('rosterSearch').value.toLowerCase().trim();
+    var rows = document.querySelectorAll('.roster-row');
+    rows.forEach(function(row) {
+      var name = row.getAttribute('data-name') || '';
+      var roll = row.getAttribute('data-roll') || '';
+      var email = row.getAttribute('data-email') || '';
+      if (!query || name.includes(query) || roll.includes(query) || email.includes(query)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+</script>
+{% endblock script %}

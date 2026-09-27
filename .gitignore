@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local environment variables & secrets (keeps database passwords safe)
+.env
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE and editor configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System temporary files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+
+# Nested extracted duplicate folder
+student-attendance-system-main/
